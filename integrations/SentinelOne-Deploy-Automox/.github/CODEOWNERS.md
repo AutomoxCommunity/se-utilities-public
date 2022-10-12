@@ -1,1 +1,13 @@
+# Automox uses code owners to ensure that proper cross domain checks (e.g. quality, dev, project manaagement, test
+# automation) happen before PRs get merged.  The people in the following list are responsible for making sure the proper
+# things are done for release before the change goes into the `develop` branch on its way to release.
+#
+# See https://help.github.com/en/articles/about-code-owners
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence
+*  @adamwhitman
+#
+# # These owners own any files in the cypress
+# directory at the root of the repository and any of its subdirectories.
+
 
