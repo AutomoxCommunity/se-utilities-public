@@ -18,7 +18,7 @@ foreach ($key in Get-ChildItem $un64keys -ErrorAction SilentlyContinue | Get-Ite
         exit 0
 }
 # Install
-$source = 'https://console.automox.com/Automox_Installer-latest.msi'
+$source = 'https://console.automox.com/installers/Automox_Installer-latest.msi'
 $destination = 'C:\Automox_Installer-latest.msi'
 $client = (New-Object Net.WebClient)
 $client.Headers["User-Agent"] = 'ax:ax-agent-deployer/S1 0.1.2 (Windows)'
