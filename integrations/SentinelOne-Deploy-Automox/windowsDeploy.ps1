@@ -21,7 +21,7 @@ foreach ($key in Get-ChildItem $un64keys -ErrorAction SilentlyContinue | Get-Ite
 $source = 'https://console.automox.com/installers/Automox_Installer-latest.msi'
 $destination = 'C:\Automox_Installer-latest.msi'
 $client = (New-Object Net.WebClient)
-$client.Headers["User-Agent"] = 'ax:ax-agent-deployer/S1 0.1.2 (Windows)'
+$client.Headers["User-Agent"] = 'ax:ax-agent-deployer/AX 0.1.2 (Windows)'
 $client.DownloadFile($source, $destination)
 Start-Process msiexec.exe -ArgumentList "/i ${destination} /qn /norestart ACCESSKEY=$key" -Wait
 del $destination
