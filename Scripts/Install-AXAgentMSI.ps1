@@ -67,7 +67,7 @@ param (
 
 # These values are typically fixed. But may be modified to fit a custom scenario
 $installerUrl = "https://console.automox.com/installers/Automox_Installer-latest.msi"
-$installerName = "Automox_Installer-latest.msi"
+$installerName = "AutomoxInstaller.msi"
 $installerPath = "$env:TEMP\$installerName"
 $agentPath = "${env:ProgramFiles(x86)}\Automox\amagent.exe"
 $logFile = "$env:TEMP\AutomoxInstallandLaunch.log"
