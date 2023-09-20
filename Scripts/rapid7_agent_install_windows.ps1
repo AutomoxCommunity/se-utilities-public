@@ -47,7 +47,7 @@ $scriptBlock = {
 
     ######## Make changes within the block ########
     # Add Application name exactly as it appears in Add/Remove Programs, Programs and Features, or Apps and Features between single quotes.
-    $appName = 'Rapid7 Insight \'
+    $appName = 'Rapid7 Insight Agent'
     ###############################################
 
     # Define registry location for uninstall keys
