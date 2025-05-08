@@ -48,13 +48,14 @@
   you may enter the values manually in the param section in the
   Setup region below.
 
-  Creation Date: March, 2025
+  Creation Date: May, 2025
   Updated by: Automox Professional Services Team
   Version: 2.0.0
   Changes:
     - Added functionality to restart the amagent service if it is not running
     - Before installing the agent, we will check if console.automox.com can be reached
     - Added functionality to rotate the log file if it exceeds 1MB
+    - This script will use Start-Transcript to log the installation process
 
 .EXAMPLE
   Run this script file with at least an AccessKey specified
@@ -68,34 +69,31 @@ https://www.automox.com
 #>
 
 param (
-    [Parameter(Mandatory = $true)][String]$AccessKey,
+    [Parameter(Mandatory = $true)][ValidateNotNullorEmpty()][String]$AccessKey,
     [Parameter(Mandatory = $false)][String]$GroupName,
     [Parameter(Mandatory = $false)][String]$ParentGroupName
 )
-
-# Validate that only one ParentGroupName and one GroupName are provided
-if ($GroupName -is [Array] -or $ParentGroupName -is [Array]) {
-    Write-Host "Error: Only one parent group and one child group can be provided." -ForegroundColor Red
-    Exit 1
-}
 
 #################### Region start: Setup Variables #################
 
 $installerUrl = "https://console.automox.com/installers/Automox_Installer-latest.msi"
 $installerName = "Automox_Installer-latest.msi"
-$installerPath = "$env:TEMP\$installerName"
+$installerPath = "${env:TEMP}\${installerName}"
 $agentPath = "${env:ProgramFiles(x86)}\Automox\amagent.exe"
-$logFile = "$env:TEMP\AutomoxInstallandLaunch.log"
+$logFile = "${env:TEMP}\AutomoxInstallandLaunch.log"
 
 #################### Region end: Setup Variables #################
+
+# Start the transcript
+Start-Transcript -Path $logFile -Append
 
 #################### Region start: Functions #################
 
 function DownloadAndInstall-AxAgent 
 {
     param (
-        [Parameter(Mandatory = $true)][String]$installerUrl,
-        [Parameter(Mandatory = $true)][String]$installerPath,
+        [Parameter(Mandatory = $false)][String]$installerUrl="https://console.automox.com/installers/Automox_Installer-latest.msi",
+        [Parameter(Mandatory = $true)][String]$installerPath="${env:TEMP}\${installerName}",
         [Parameter(Mandatory = $true)][String]$AccessKey,
         [Parameter(Mandatory = $true)][String]$logFile
     )
@@ -106,68 +104,25 @@ function DownloadAndInstall-AxAgent
     }
 
     # Step 2: Download the installer
-    Write-Log "Downloading started..." $logFile
+    Write-Output "Downloading started..."
     $downloader = New-Object System.Net.WebClient
     try 
     {
         $downloader.DownloadFile("$installerUrl", "$installerPath")
-        Write-Log "Download succeeded, attempting install" $logFile
+        Write-Output "Download succeeded, attempting install"
     } catch 
     {
-        Write-Log "Download failed. Installation stopped`n Exit Code = 1" $logFile
+        Write-Error "Download failed. Installation stopped`n Exit Code = 1"
         return 1
     }
 
     # Step 3: Install the agent
-    Write-Log "Starting installation of $installerPath" $logFile
+    Write-Output "Starting installation of $installerPath"
     $process = Start-Process 'msiexec.exe' -ArgumentList "/i `"$installerPath`" /qn /norestart ACCESSKEY=$AccessKey" -Wait -PassThru
-    Write-Log "Installation completed with Exit Code $($process.ExitCode)" $logFile
+    Write-Output "Installation completed with Exit Code $($process.ExitCode)"
 
     # Return the exit code
     return $process.ExitCode
-}
-
-function Write-Log
-{
-    param (
-        [Parameter(Mandatory = $true)][String]$line,
-        [Parameter(Mandatory = $true)][String]$file,
-        [Parameter(Mandatory = $false)][Switch]$Overwrite
-    )
-    $timeStamp = "[" + (Get-Date).ToShortDateString() + " " + ((Get-Date).ToShortTimeString()) + "]"
-
-    if ((!(Test-Path $file)) -or ($overwrite))
-    {
-        Set-Content -Path $file -Value "$timeStamp $line"
-    }
-    else
-    {
-        Add-Content -Path $file -Value "$timeStamp $line"
-    }
-}
-
-function Rotate-LogFile {
-    param (
-        [Parameter(Mandatory = $true)][String]$logFile,
-        [Parameter(Mandatory = $false)][Int]$maxSizeMB = 5
-    )
-
-    # Check if the log file exists
-    if (Test-Path $logFile) {
-        # Get the size of the log file in MB
-        $fileSizeMB = (Get-Item $logFile).Length / 1MB
-
-        # If the file size exceeds the max size, rotate the log
-        if ($fileSizeMB -ge $maxSizeMB) {
-            $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-            $archiveLogFile = "$logFile.$timestamp"
-
-            # Rename the current log file
-            Rename-Item -Path $logFile -NewName $archiveLogFile
-
-            Write-Host "Log file rotated: $archiveLogFile" -ForegroundColor Yellow
-        }
-    }
 }
 
 function CheckAutomoxConsole 
@@ -175,24 +130,10 @@ function CheckAutomoxConsole
     $tcpResult = Test-NetConnection -ComputerName console.automox.com -Port 443
     $tcpReachable = $tcpResult.TcpTestSucceeded
     if ($tcpReachable) {
-        Write-Log "Automox Console is reachable - Script Proceeding" $logFile
+        Write-Verbose "Automox Console is reachable - Script Proceeding"
         return $true
     } else {
-        Write-Log "Automox Console is NOT reachable - Script exiting without making changes (Exit Code 1)" $logFile
-        return $false
-    }
-}
-
-function ServiceRestart
-{
-    if (Start-Service -Name amagent -ErrorAction Stop)
-    {
-        Write-Log "Service Restarted Successfully" $logFile
-        return $true
-    }
-    else
-    {
-        Write-Log "Service Restart Failed" $logFile
+        Write-Error "Automox Console is NOT reachable - Script exiting without making changes (Exit Code 1)"
         return $false
     }
 }
@@ -219,20 +160,17 @@ function Set-AxServerGroup
 
 ##################### Main Script Start #####################
 
-### Rotate the log file if it exceeds 5MB ###
-Rotate-LogFile -logFile $logFile -maxSizeMB 1
-
 ### Check if the Automox Agent is installed ###
-Write-Log "Checking if amagent is installed" $logFile
+Write-Verbose "Checking if amagent is installed" 
 $agentInstalled = Get-CIMInstance -Class Win32_Product | Where-Object {$_.Name -eq "Automox Agent"}
 
 if ($agentInstalled) 
 {
-    Write-Log "Automox Agent is installed. Checking that amagent service is running..." $logFile
+    Write-Verbose "Automox Agent is installed. Checking that amagent service is running..."
 }
 else
 {
-    Write-Log "Automox Agent is not installed. Proceeding with download and installation..." $logFile
+    Write-Output "Automox Agent is not installed. Proceeding with download and installation..."
     $exitCode = DownloadAndInstall-AxAgent -installerUrl $installerUrl -installerPath $installerPath -AccessKey $AccessKey -logFile $logFile
 }
 
@@ -243,79 +181,85 @@ $service = Get-Service -Name amagent -ErrorAction SilentlyContinue
 
 if ($service.Status -eq "Running" -and $agentInstalled)
 {
-    Write-Log "Agent Service is installed and Running." $logFile
-    Write-Log "Script Completed Successfully... Exiting" $logFile
+    Write-Output "Agent Service is installed and Running."
+    Write-Output "Script Completed Successfully... Exiting"
     Exit 0
 }
 elseif (($null -ne $agentInstalled) -and ($service.Status -ne "Running"))
 {
-    Write-Log "amagent service is installed but not Running" $logFile
-    try
-    {
+    Write-Output "amagent service is installed but not Running"
         # Attempt to start the Service. Exit 0 for success, if it fails we will attempt a reinstall of the agent
-        if (ServiceRestart)
+        try
         {
-            Write-Log "Script Completed Successfully... Exiting" $logFile
-            Exit 0
+            Write-Verbose "Attempting to start amagent service"
+            Start-Service -Name amagent -ErrorAction Stop
         }
-        else
+        catch
         {
-            Write-Log "The amagent service failed to start - Troubleshooting information can be found here: https://help.automox.com/hc/en-us/articles/31570264469268-Cannot-Uninstall-Automox-Agent" $logFile
+            Write-Error "Service failed to start. Attempting to restart the service"
+            Exit 1
         }
-    }
-    catch
-    {
-        Write-Log "The Automox agent is installed, but the agent service is unable to start: " $logFile
-        Write-Log "Troubleshooting information can be found here: https://help.automox.com/hc/en-us/articles/31570264469268-Cannot-Uninstall-Automox-Agent" $logFile
-        Exit 1
-    }
 }
+
 
 ### Here is where the exit code for the MSI is evaluated ###
 ### If an error is encountered, we will exit the script without setting groups ###
 Switch (([String]::IsNullOrEmpty($exitCode) -eq $False) -and ([String]::IsNullOrWhiteSpace($exitCode) -eq $False))
-  {
-      {($_ -eq $True)}
+{
+    {($_ -eq $True)}
+    {
+        Switch ($exitCode)
         {
-            Switch ($exitCode)
-              {
-                  {($_ -in @('0', '1641', '3010'))}
-                    {
-                        Write-Log "Download and installation process completed successfully" $logFile
-                        # If successful installation (based on exit code), then proceed to set the group.
-                        if (-not [string]::IsNullOrEmpty($parentGroupName))
-                        {
-                            Write-Log "Moving Device to Group: $GroupName" $logFile
-                            Set-AxServerGroup -Group $GroupName -ParentGroup $parentGroupName
-                            Write-Log "Installation Script has finished successfully. Exit Code 0" $logFile
-                            Exit 0
-                        }
-                        elseif (-not [string]::IsNullOrEmpty($GroupName))
-                        {
-                            Set-AxServerGroup -Group $GroupName
-                            Write-Log "Installation Script has finished successfully. Exit Code 0" $logFile
-                            Exit 0
-                        }
-                        else 
-                        {
-                            Write-Log "No Group was specified. Device will remain in Default Group" $logFile
-                            Write-Log "Installation Script has finished successfully. Exit Code 0" $logFile
-                            Exit 0
-                        }
-                    }
+            {($_ -in @('0', '1641', '3010'))}
+            {
+                Write-Output "Download and installation process completed successfully" 
+                # If successful installation (based on exit code), then proceed to set the group.
+                if (-not [string]::IsNullOrEmpty($ParentGroupName) -and -not [string]::IsNullOrEmpty($GroupName))
+                {
+                    Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName" 
+                    Set-AxServerGroup -Group $GroupName -ParentGroup $ParentGroupName
+                    Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                    Exit 0
+                }
+                elseif (-not [string]::IsNullOrEmpty($GroupName))
+                {
+                    Write-Output "Moving Device to Group: $GroupName" 
+                    Set-AxServerGroup -Group $GroupName
+                    Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                    Exit 0
+                }
+                else
+                {
+                    Write-Output "No Group was specified. Device will remain in Default Group" 
+                    Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                    Exit 0
+                }
+            }
 
-                  Default
-                    {
-                        Write-Log "Installation failed. Unable to set group. Please try again" $logFile
-                        exit $exitCode
-                    }
-              }
+            Default
+            {
+                if ([string]::IsNullOrEmpty($GroupName) -and [string]::IsNullOrEmpty($ParentGroupName))
+                {
+                    Write-Output "No Group or Parent Group specified. Device will remain in Default Group." 
+                    Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                    Exit 0
+                }
+                else
+                {
+                    Write-Output "The Automox Agent was installed, but failed to set the desired group."
+                    Write-Error "Please check that your specified group or parent group exist in the Automox Console."
+                    exit $exitCode
+                }
+            }
         }
+    }
 
-      Default
-        {
-            Write-Log "Installation was not required. Script Exiting without errors" $logFile
-            exit 0
-        }
-  }
+    Default
+    {
+        Write-Output "Installation was not required. Script Exiting without errors"
+        exit 0
+    }
+}
+
+Stop-Transcript
 ##################### Main Script End #####################
