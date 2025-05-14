@@ -54,7 +54,6 @@
   Changes:
     - Added functionality to restart the amagent service if it is not running
     - Before installing the agent, we will check if console.automox.com can be reached
-    - Added functionality to rotate the log file if it exceeds 1MB
     - This script will use Start-Transcript to log the installation process
 
 .EXAMPLE
@@ -127,7 +126,7 @@ function DownloadAndInstall-AxAgent
         [Parameter(Mandatory = $true)][String]$AccessKey
     )
 
-    # Step 2: Download the installer
+    # Step 1: Download the installer
     Write-Output "Downloading started..."
     $downloader = New-Object System.Net.WebClient
     try 
@@ -141,7 +140,7 @@ function DownloadAndInstall-AxAgent
         exit 1
     }
 
-    # Step 3: Install the agent
+    # Step 2: Install the agent
     Write-Output "Starting installation of $installerPath"
     $process = Start-Process 'msiexec.exe' -ArgumentList "/i `"$installerPath`" /qn /norestart ACCESSKEY=$AccessKey" -Wait -PassThru
     Write-Output "Installation completed with Exit Code $($process.ExitCode)"
@@ -201,7 +200,7 @@ else
     {
         Write-Error "Automox Console is not reachable. Exiting script without making changes."
         Stop-Transcript
-        exit 1
+        Exit 1
     }
     $exitCode = DownloadAndInstall-AxAgent -installerUrl $installerUrl -installerPath $installerPath -AccessKey $AccessKey
 }
