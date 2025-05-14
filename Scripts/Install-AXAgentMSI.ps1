@@ -244,7 +244,8 @@ elseif (($null -ne $agentInstalled) -and ($service.Status -ne "Running"))
 ### Check if $exitCode is valid (not null, empty, or whitespace)
 ### If an error is encountered, we will exit the script without setting groups ###
 if (-not [String]::IsNullOrEmpty($exitCode) -and -not [String]::IsNullOrWhiteSpace($exitCode)) {
-    Switch ($exitCode) {
+    Switch ($exitCode) 
+    {
         {($_ -in @('0', '1641', '3010'))} {
             Write-Output "Download and installation process completed successfully" 
             # If successful installation (based on exit code), then proceed to set the group.
@@ -268,9 +269,16 @@ if (-not [String]::IsNullOrEmpty($exitCode) -and -not [String]::IsNullOrWhiteSpa
             }
         }
 
-        Default {
+        Default
+        {
             if ([string]::IsNullOrEmpty($GroupName) -and [string]::IsNullOrEmpty($ParentGroupName)) {
                 Write-Output "No Group or Parent Group specified. Device will remain in Default Group." 
+                Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                Stop-Transcript
+                Exit 0
+            } elseif (-not [string]::IsNullOrEmpty($ParentGroupName) -and -not [string]::IsNullOrEmpty($GroupName)) {
+                Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName" 
+                Set-AxServerGroup -GroupName $GroupName -ParentGroup $ParentGroupName
                 Write-Output "Installation Script has finished successfully. Exit Code 0" 
                 Stop-Transcript
                 Exit 0
@@ -287,8 +295,10 @@ if (-not [String]::IsNullOrEmpty($exitCode) -and -not [String]::IsNullOrWhiteSpa
                 exit $exitCode
             }
         }
+        }
     }
-} else {
+else 
+{
     Write-Output "Installation was not required. Script Exiting without errors"
     Stop-Transcript
     exit 0
