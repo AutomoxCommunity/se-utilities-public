@@ -140,7 +140,7 @@ function DownloadAndInstall-AxAgent
         Write-Output "Download succeeded, attempting install"
     } catch 
     {
-        Write-Error "Download failed. Installation stopped`n Exit Code = 1"
+        Write-Error "Download failed. Installation stopped. Error: $($_.Exception.Message )"
         Stop-Transcript
         exit 1
     }
@@ -241,68 +241,57 @@ elseif (($null -ne $agentInstalled) -and ($service.Status -ne "Running"))
 
 
 ### Here is where the exit code for the MSI is evaluated ###
+### Check if $exitCode is valid (not null, empty, or whitespace)
 ### If an error is encountered, we will exit the script without setting groups ###
-Switch (([String]::IsNullOrEmpty($exitCode) -eq $False) -and ([String]::IsNullOrWhiteSpace($exitCode) -eq $False))
-{
-    {($_ -eq $True)}
-    {
-        Switch ($exitCode)
-        {
-            {($_ -in @('0', '1641', '3010'))}
-            {
-                Write-Output "Download and installation process completed successfully" 
-                # If successful installation (based on exit code), then proceed to set the group.
-                if (-not [string]::IsNullOrEmpty($ParentGroupName) -and -not [string]::IsNullOrEmpty($GroupName))
-                {
-                    Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName" 
-                    Set-AxServerGroup -GroupName $GroupName -ParentGroup $ParentGroupName
-                    Write-Output "Installation Script has finished successfully. Exit Code 0" 
-                    Stop-Transcript
-                    Exit 0
-                }
-                elseif (-not [string]::IsNullOrEmpty($GroupName))
-                {
-                    Write-Output "Moving Device to Group: $GroupName" 
-                    Set-AxServerGroup -GroupName $GroupName
-                    Write-Output "Installation Script has finished successfully. Exit Code 0" 
-                    Stop-Transcript
-                    Exit 0
-                }
-                else
-                {
-                    Write-Output "No Group was specified. Device will remain in Default Group" 
-                    Write-Output "Installation Script has finished successfully. Exit Code 0" 
-                    Stop-Transcript
-                    Exit 0
-                }
+if (-not [String]::IsNullOrEmpty($exitCode) -and -not [String]::IsNullOrWhiteSpace($exitCode)) {
+    Switch ($exitCode) {
+        {($_ -in @('0', '1641', '3010'))} {
+            Write-Output "Download and installation process completed successfully" 
+            # If successful installation (based on exit code), then proceed to set the group.
+            if (-not [string]::IsNullOrEmpty($ParentGroupName) -and -not [string]::IsNullOrEmpty($GroupName)) {
+                Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName" 
+                Set-AxServerGroup -GroupName $GroupName -ParentGroup $ParentGroupName
+                Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                Stop-Transcript
+                Exit 0
+            } elseif (-not [string]::IsNullOrEmpty($GroupName)) {
+                Write-Output "Moving Device to Group: $GroupName" 
+                Set-AxServerGroup -GroupName $GroupName
+                Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                Stop-Transcript
+                Exit 0
+            } else {
+                Write-Output "No Group was specified. Device will remain in Default Group" 
+                Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                Stop-Transcript
+                Exit 0
             }
+        }
 
-            Default
-            {
-                if ([string]::IsNullOrEmpty($GroupName) -and [string]::IsNullOrEmpty($ParentGroupName))
-                {
-                    Write-Output "No Group or Parent Group specified. Device will remain in Default Group." 
-                    Write-Output "Installation Script has finished successfully. Exit Code 0" 
-                    Stop-Transcript
-                    Exit 0
-                }
-                else
-                {
-                    Write-Output "The Automox Agent was installed, but failed to set the desired group."
-                    Write-Error "Please check that your specified group or parent group exist in the Automox Console."
-                    Stop-Transcript
-                    exit $exitCode
-                }
+        Default {
+            if ([string]::IsNullOrEmpty($GroupName) -and [string]::IsNullOrEmpty($ParentGroupName)) {
+                Write-Output "No Group or Parent Group specified. Device will remain in Default Group." 
+                Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                Stop-Transcript
+                Exit 0
+            } elseif (-not [string]::IsNullOrEmpty($GroupName) -and [string]::IsNullOrEmpty($ParentGroupName)) {
+                Write-Output "Moving Device to Group: $GroupName" 
+                Set-AxServerGroup -GroupName $GroupName
+                Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                Stop-Transcript
+                Exit 0
+            } else {
+                Write-Output "The Automox Agent was installed, but failed to set the desired group."
+                Write-Error "Please check that your specified group or parent group exist in the Automox Console."
+                Stop-Transcript
+                exit $exitCode
             }
         }
     }
-
-    Default
-    {
-        Write-Output "Installation was not required. Script Exiting without errors"
-        Stop-Transcript
-        exit 0
-    }
+} else {
+    Write-Output "Installation was not required. Script Exiting without errors"
+    Stop-Transcript
+    exit 0
 }
 
 ##################### Main Script End #####################
