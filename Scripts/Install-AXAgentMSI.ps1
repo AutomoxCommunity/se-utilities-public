@@ -215,6 +215,7 @@ if ($service.Status -eq "Running" -and $agentInstalled)
 {
     Write-Output "Agent Service is installed and Running."
     Write-Output "Script Completed Successfully... Exiting"
+    Stop-Transcript
     Exit 0
 }
 elseif (($null -ne $agentInstalled) -and ($service.Status -ne "Running"))
@@ -229,6 +230,7 @@ elseif (($null -ne $agentInstalled) -and ($service.Status -ne "Running"))
         catch
         {
             Write-Error "Service failed to start. Attempting to restart the service"
+            Stop-Transcript
             Exit 1
         }
 }
@@ -251,6 +253,7 @@ Switch (([String]::IsNullOrEmpty($exitCode) -eq $False) -and ([String]::IsNullOr
                     Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName" 
                     Set-AxServerGroup -GroupName $GroupName -ParentGroup $ParentGroupName
                     Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                    Stop-Transcript
                     Exit 0
                 }
                 elseif (-not [string]::IsNullOrEmpty($GroupName))
@@ -258,12 +261,14 @@ Switch (([String]::IsNullOrEmpty($exitCode) -eq $False) -and ([String]::IsNullOr
                     Write-Output "Moving Device to Group: $GroupName" 
                     Set-AxServerGroup -GroupName $GroupName
                     Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                    Stop-Transcript
                     Exit 0
                 }
                 else
                 {
                     Write-Output "No Group was specified. Device will remain in Default Group" 
                     Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                    Stop-Transcript
                     Exit 0
                 }
             }
@@ -274,12 +279,14 @@ Switch (([String]::IsNullOrEmpty($exitCode) -eq $False) -and ([String]::IsNullOr
                 {
                     Write-Output "No Group or Parent Group specified. Device will remain in Default Group." 
                     Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                    Stop-Transcript
                     Exit 0
                 }
                 else
                 {
                     Write-Output "The Automox Agent was installed, but failed to set the desired group."
                     Write-Error "Please check that your specified group or parent group exist in the Automox Console."
+                    Stop-Transcript
                     exit $exitCode
                 }
             }
@@ -289,9 +296,9 @@ Switch (([String]::IsNullOrEmpty($exitCode) -eq $False) -and ([String]::IsNullOr
     Default
     {
         Write-Output "Installation was not required. Script Exiting without errors"
+        Stop-Transcript
         exit 0
     }
 }
 
-Stop-Transcript
 ##################### Main Script End #####################
