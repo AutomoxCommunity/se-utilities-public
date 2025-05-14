@@ -89,19 +89,43 @@ Start-Transcript -Path $logFile -Append
 
 #################### Region start: Functions #################
 
+function CheckForAgent
+{
+
+    $agentInstalled = $false
+
+    if([System.Environment]::Is64BitOperatingSystem)
+    {
+        $hklm64 = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine,[Microsoft.Win32.RegistryView]::Registry64)
+        $skey64 = $hklm64.OpenSubKey("Software\Microsoft\Windows\CurrentVersion\Uninstall")
+        $unkeys64 = $skey64.GetSubKeyNames()
+        foreach($key in $unkeys64)
+        {
+            if($skey64.OpenSubKey($key).getvalue('DisplayName') -like "*Automox Agent*" -and !($skey64.OpenSubKey($key).getvalue("SystemComponent")))
+            {
+                $agentInstalled = $true
+            }
+        }
+    }
+
+    # Check 32bit hive on 32/64 bit devices
+    $skey32 = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
+    foreach($key in Get-ChildItem $skey32 -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object {($_.DisplayName -like "*Automox Agent*" -and !($_.SystemComponent))})
+    {
+        $agentInstalled = $true
+    }
+
+    return $agentInstalled
+
+}
+
 function DownloadAndInstall-AxAgent 
 {
     param (
         [Parameter(Mandatory = $false)][String]$installerUrl="https://console.automox.com/installers/Automox_Installer-latest.msi",
         [Parameter(Mandatory = $true)][String]$installerPath="${env:TEMP}\${installerName}",
-        [Parameter(Mandatory = $true)][String]$AccessKey,
-        [Parameter(Mandatory = $true)][String]$logFile
+        [Parameter(Mandatory = $true)][String]$AccessKey
     )
-
-    # Step 1: Check if the Automox Console is reachable
-    if (-not (CheckAutomoxConsole)) {
-        return 1
-    }
 
     # Step 2: Download the installer
     Write-Output "Downloading started..."
@@ -113,7 +137,8 @@ function DownloadAndInstall-AxAgent
     } catch 
     {
         Write-Error "Download failed. Installation stopped`n Exit Code = 1"
-        return 1
+        Stop-Transcript
+        exit 1
     }
 
     # Step 3: Install the agent
@@ -162,7 +187,7 @@ function Set-AxServerGroup
 
 ### Check if the Automox Agent is installed ###
 Write-Verbose "Checking if amagent is installed" 
-$agentInstalled = Get-CIMInstance -Class Win32_Product | Where-Object {$_.Name -eq "Automox Agent"}
+$agentInstalled = CheckForAgent
 
 if ($agentInstalled) 
 {
@@ -171,7 +196,14 @@ if ($agentInstalled)
 else
 {
     Write-Output "Automox Agent is not installed. Proceeding with download and installation..."
-    $exitCode = DownloadAndInstall-AxAgent -installerUrl $installerUrl -installerPath $installerPath -AccessKey $AccessKey -logFile $logFile
+    # Check if the Automox Console is reachable
+    if (-not (CheckAutomoxConsole))
+    {
+        Write-Error "Automox Console is not reachable. Exiting script without making changes."
+        Stop-Transcript
+        exit 1
+    }
+    $exitCode = DownloadAndInstall-AxAgent -installerUrl $installerUrl -installerPath $installerPath -AccessKey $AccessKey
 }
 
 
@@ -217,14 +249,14 @@ Switch (([String]::IsNullOrEmpty($exitCode) -eq $False) -and ([String]::IsNullOr
                 if (-not [string]::IsNullOrEmpty($ParentGroupName) -and -not [string]::IsNullOrEmpty($GroupName))
                 {
                     Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName" 
-                    Set-AxServerGroup -Group $GroupName -ParentGroup $ParentGroupName
+                    Set-AxServerGroup -GroupName $GroupName -ParentGroup $ParentGroupName
                     Write-Output "Installation Script has finished successfully. Exit Code 0" 
                     Exit 0
                 }
                 elseif (-not [string]::IsNullOrEmpty($GroupName))
                 {
                     Write-Output "Moving Device to Group: $GroupName" 
-                    Set-AxServerGroup -Group $GroupName
+                    Set-AxServerGroup -GroupName $GroupName
                     Write-Output "Installation Script has finished successfully. Exit Code 0" 
                     Exit 0
                 }
