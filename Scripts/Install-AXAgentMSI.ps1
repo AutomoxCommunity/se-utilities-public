@@ -80,11 +80,16 @@ $installerName = "Automox_Installer-latest.msi"
 $installerPath = "${env:TEMP}\${installerName}"
 $agentPath = "${env:ProgramFiles(x86)}\Automox\amagent.exe"
 $logFile = "${env:TEMP}\AutomoxInstallandLaunch.log"
+$VerbosePreference = "Continue"
 
 #################### Region end: Setup Variables #################
 
 # Start the transcript
 Start-Transcript -Path $logFile -Append
+
+# Write a start time to the transcript
+$Date = Get-Date
+Write-Verbose "Automox Installation Transcript begin: $Date"
 
 #################### Region start: Functions #################
 
