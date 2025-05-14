@@ -148,7 +148,6 @@ function DownloadAndInstall-AxAgent
     # Step 2: Install the agent
     Write-Output "Starting installation of $installerPath"
     $process = Start-Process 'msiexec.exe' -ArgumentList "/i `"$installerPath`" /qn /norestart ACCESSKEY=$AccessKey" -Wait -PassThru
-    Write-Output "Installation completed with Exit Code $($process.ExitCode)"
 
     # Return the exit code
     return $process.ExitCode
@@ -208,6 +207,7 @@ else
         Exit 1
     }
     $exitCode = DownloadAndInstall-AxAgent -installerUrl $installerUrl -installerPath $installerPath -AccessKey $AccessKey
+    Write-Output "Installation completed with Exit Code $exitCode"
 }
 
 
