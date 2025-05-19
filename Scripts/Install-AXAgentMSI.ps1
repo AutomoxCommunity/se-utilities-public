@@ -1,70 +1,69 @@
 <#
-.SYNOPSIS
-  Checks if Automox is installed and the agent is running.
-  if the Automox agent is not installed, this script downloads and installs the latest Automox Agent MSI.
-  Your organization access key is required to install the agent.
-  Additionally, you can optionally set a group and parent group for the agent to be moved to upon installation.
+    .SYNOPSIS
+    Checks if Automox is installed and the agent is running.
+    if the Automox agent is not installed, this script downloads and installs the latest Automox Agent MSI.
+    Your organization access key is required to install the agent.
+    Additionally, you can optionally set a group and parent group for the agent to be moved to upon installation.
 
-  Please note that only one parent group and one child group can be specified.
+    Please note that only one parent group and one child group can be specified.
 
-.DESCRIPTION
-  Uses a WebClient object to download the latest Automox Agent MSI and
-  install it with silent options and your specified organization access key.
+    .DESCRIPTION
+    Uses a WebClient object to download the latest Automox Agent MSI and
+    install it with silent options and your specified organization access key.
 
-.PARAMETER AccessKey
-  This parameter is required to run.
-  Specifies the Automox Organization this device should belong to.
-  Can also be referred to as "Organization Key" or
-  "Unique User Key". This is a unique identifier for your organization
-  and can be found in your Automox Console in these locations:
+    .PARAMETER AccessKey
+    This parameter is required to run.
+    Specifies the Automox Organization this device should belong to.
+    Can also be referred to as "Organization Key" or
+    "Unique User Key". This is a unique identifier for your organization
+    and can be found in your Automox Console in these locations:
 
-  Devices -> Add Devices
-  Settings -> API
+    Devices -> Add Devices
+    Settings -> API
 
-  This must be a valid GUID to allow the script to run
+    This must be a valid GUID to allow the script to run
 
-  -AccessKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    -AccessKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
-.PARAMETER GroupName
-  Specifies the Automox Server Group to move the device to upon
-  joining your Organization. Note that if this isn't a top-level
-  Group, then you will also need to specify the ParentGroupName
-  as well
+    .PARAMETER GroupName
+    Specifies the Automox Server Group to move the device to upon
+    joining your Organization. Note that if this isn't a top-level
+    Group, then you will also need to specify the ParentGroupName
+    as well
 
-  -GroupName "My Group Name"
+    -GroupName "My Group Name"
 
-  NOTE: By default this script will only support 1 parent group and 1 child group.
+    NOTE: By default this script will only support 1 parent group and 1 child group.
 
-.PARAMETER ParentGroupName
-  Specifies the Parent Group of the Server Group specified
-  previously.
+    .PARAMETER ParentGroupName
+    Specifies the Parent Group of the Server Group specified
+    previously.
 
-  -ParentGroupName "My Parent Group Name"
+    -ParentGroupName "My Parent Group Name"
 
-  NOTE: By default this script will only support 1 parent group and 1 child group.
+    NOTE: By default this script will only support 1 parent group and 1 child group.
 
-.NOTES
-  If you prefer not to specify parameters to this script file,
-  you may enter the values manually in the param section in the
-  Setup region below.
+    .NOTES
+    If you prefer not to specify parameters to this script file,
+    you may enter the values manually in the param section in the Setup region below.
 
-  Creation Date: May, 2025
-  Updated by: Automox Professional Services Team
-  Version: 2.0.0
-  Changes:
-    - Added functionality to restart the amagent service if it is not running
-    - Before installing the agent, we will check if console.automox.com can be reached
-    - This script will use Start-Transcript to log the installation process
+    Creation Date: May, 2025
+    Updated by: Automox Professional Services Team
+    Version: 2.0.0
+    Changes:
+        - Added functionality to restart the amagent service if it is not running
+        - Before installing the agent, we will check if console.automox.com can be reached
+        - This script will use Start-Transcript to log the installation process
 
-.EXAMPLE
-  Run this script file with at least an AccessKey specified
-    Install-AxAgentMsi.ps1 -AccessKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    .EXAMPLE
+    Run this script file with at least an AccessKey specified
+        Install-AxAgentMsi.ps1 -AccessKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
-  Optionally include a Group and Parent Group Name as needed
-    Install-AxAgentMsi.ps1 -AccessKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -GroupName "My Group Name" -ParentGroupName "My Parent Group Name"
+    Optionally include a Group and Parent Group Name as needed
+        Install-AxAgentMsi.ps1 -AccessKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -GroupName "My Group Name" -ParentGroupName "My Parent Group Name"
 
-.LINK
-https://www.automox.com
+    .LINK
+    https://www.automox.com
 #>
 
 param (
@@ -131,6 +130,9 @@ function DownloadAndInstall-AxAgent
         [Parameter(Mandatory = $true)][String]$AccessKey
     )
 
+    # set TLS requirements
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
+
     # Step 1: Download the installer
     Write-Output "Downloading started..."
     $downloader = New-Object System.Net.WebClient
@@ -141,7 +143,7 @@ function DownloadAndInstall-AxAgent
     } catch 
     {
         Write-Error "Download failed. Installation stopped. Error: $($_.Exception.Message )"
-        Stop-Transcript
+        Stop-transcript
         exit 1
     }
 
@@ -153,7 +155,7 @@ function DownloadAndInstall-AxAgent
     return $process.ExitCode
 }
 
-function CheckAutomoxConsole 
+function CheckAutomoxConsole
 {
     $tcpResult = Test-NetConnection -ComputerName console.automox.com -Port 443
     $tcpReachable = $tcpResult.TcpTestSucceeded
@@ -181,7 +183,13 @@ function Set-AxServerGroup
         $argList = "--setgrp `"Default Group/$GroupName`""
     }
     Start-Process -FilePath $agentPath -ArgumentList "$argList" -Wait
-    Start-Process -FilePath $agentPath -ArgumentList "--deregister"
+    Start-Process -FilePath $agentPath -ArgumentList "--deregister" -Wait
+    Start-Sleep 15
+
+    # restart the agent service to complete registration with group config
+    Stop-Service -Name "amagent" -Force -PassThru
+    Start-Sleep 15
+    Start-Service -Name "amagent" -PassThru
 }
 
 #################### Region End: Functions #################
