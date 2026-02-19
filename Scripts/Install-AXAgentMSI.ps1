@@ -47,6 +47,10 @@
     If you prefer not to specify parameters to this script file,
     you may enter the values manually in the param section in the Setup region below.
 
+    Version: 2.0.1
+    Changes:
+        - Updated CheckForAgent function to look in 32-bit registry hive
+
     Creation Date: May, 2025
     Updated by: Automox Professional Services Team
     Version: 2.0.0
@@ -99,7 +103,7 @@ function CheckForAgent
 
     if([System.Environment]::Is64BitOperatingSystem)
     {
-        $hklm64 = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine,[Microsoft.Win32.RegistryView]::Registry64)
+        $hklm64 = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine,[Microsoft.Win32.RegistryView]::Registry32)
         $skey64 = $hklm64.OpenSubKey("Software\Microsoft\Windows\CurrentVersion\Uninstall")
         $unkeys64 = $skey64.GetSubKeyNames()
         foreach($key in $unkeys64)
