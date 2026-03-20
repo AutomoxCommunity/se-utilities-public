@@ -47,6 +47,14 @@
     If you prefer not to specify parameters to this script file,
     you may enter the values manually in the param section in the Setup region below.
 
+    Version: 2.0.2
+    Changes:
+        - Restored 64-bit registry check (RegistryView::Registry64) in CheckForAgent
+        - Replaced PowerShell cmdlet 32-bit check with .NET RegistryView::Registry32 to
+          reliably query WOW6432Node regardless of execution context
+        - Both 64-bit and 32-bit (WOW6432Node) hives are now explicitly checked,
+          ensuring detection works if the agent architecture changes in the future
+
     Version: 2.0.1
     Changes:
         - Updated CheckForAgent function to look in 32-bit registry hive
@@ -103,7 +111,7 @@ function CheckForAgent
 
     if([System.Environment]::Is64BitOperatingSystem)
     {
-        $hklm64 = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine,[Microsoft.Win32.RegistryView]::Registry32)
+        $hklm64 = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine,[Microsoft.Win32.RegistryView]::Registry64)
         $skey64 = $hklm64.OpenSubKey("Software\Microsoft\Windows\CurrentVersion\Uninstall")
         $unkeys64 = $skey64.GetSubKeyNames()
         foreach($key in $unkeys64)
@@ -115,11 +123,18 @@ function CheckForAgent
         }
     }
 
-    # Check 32bit hive on 32/64 bit devices
-    $skey32 = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
-    foreach($key in Get-ChildItem $skey32 -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object {($_.DisplayName -like "*Automox Agent*" -and !($_.SystemComponent))})
-    {
-        $agentInstalled = $true
+    # Check 32-bit (WOW6432Node) hive on 32/64 bit devices
+    $hklm32 = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry32)
+    $skey32 = $hklm32.OpenSubKey("Software\Microsoft\Windows\CurrentVersion\Uninstall")
+    if ($skey32) {
+        $unkeys32 = $skey32.GetSubKeyNames()
+        foreach ($key in $unkeys32)
+        {
+            if ($skey32.OpenSubKey($key).GetValue('DisplayName') -like "*Automox Agent*" -and !($skey32.OpenSubKey($key).GetValue("SystemComponent")))
+            {
+                $agentInstalled = $true
+            }
+        }
     }
 
     return $agentInstalled
