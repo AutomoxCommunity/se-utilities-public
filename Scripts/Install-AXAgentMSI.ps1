@@ -203,6 +203,7 @@ function Set-AxServerGroup
     }
     Start-Process -FilePath $agentPath -ArgumentList "$argList" -Wait
     Start-Process -FilePath $agentPath -ArgumentList "--deregister" -Wait
+    Start-Process -FilePath $agentPath -ArgumentList "--setkey $AccessKey" -Wait
     Start-Sleep 15
 
     # restart the agent service to complete registration with group config
