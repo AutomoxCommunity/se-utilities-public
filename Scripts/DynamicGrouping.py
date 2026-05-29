@@ -202,7 +202,7 @@ def create_dynamic_groups(group_names):
         name = group + " (Dynamic)"
         payload = {
             "name": name,
-            "refresh_interval": 1440,
+            "refresh_interval": 240,
             "parent_server_group_id": default_group_id,
             "ui_color": "#3C78D8",
         }
