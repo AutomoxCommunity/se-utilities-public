@@ -331,6 +331,7 @@ def sync_group(name, desired_device_ids, group_name_to_id, fallback_group_id, se
     dynamic_group_name = f"{name} (Dynamic)"
     group_id = group_name_to_id.get(dynamic_group_name)
     id_to_label = {s['id']: _device_label(s) for s in servers}
+    id_to_current_group = {s['id']: s.get('server_group_id') for s in servers}
     logger.info("%s | group_id: %s | devices: %s", dynamic_group_name, group_id, desired_device_ids)
 
     if not group_id:
@@ -340,6 +341,9 @@ def sync_group(name, desired_device_ids, group_name_to_id, fallback_group_id, se
 
     for device_id in desired_device_ids:
         label = id_to_label.get(device_id, str(device_id))
+        if id_to_current_group.get(device_id) == group_id:
+            logger.info("%s already in %s, skipping", label, dynamic_group_name)
+            continue
         try:
             r = set_device_group(device_id, group_id)
         except Exception as e:
