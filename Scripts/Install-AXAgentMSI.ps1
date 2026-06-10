@@ -47,6 +47,12 @@
     If you prefer not to specify parameters to this script file,
     you may enter the values manually in the param section in the Setup region below.
 
+    Version: 2.0.3
+    Changes:
+        - Fixed parameter name mismatch in Set-AxServerGroup function calls
+          (-ParentGroup changed to -parentGroupName) that prevented group assignment
+          when deploying via GPO with ParentGroupName specified
+
     Version: 2.0.2
     Changes:
         - Restored 64-bit registry check (RegistryView::Registry64) in CheckForAgent
@@ -279,8 +285,8 @@ if (-not [String]::IsNullOrEmpty($exitCode) -and -not [String]::IsNullOrWhiteSpa
             # If successful installation (based on exit code), then proceed to set the group.
             if (-not [string]::IsNullOrEmpty($ParentGroupName) -and -not [string]::IsNullOrEmpty($GroupName)) {
                 Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName" 
-                Set-AxServerGroup -GroupName $GroupName -ParentGroup $ParentGroupName
-                Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                Set-AxServerGroup -GroupName $GroupName -parentGroupName $ParentGroupName
+                Write-Output "Installation Script has finished successfully. Exit Code 0"
                 Stop-Transcript
                 Exit 0
             } elseif (-not [string]::IsNullOrEmpty($GroupName)) {
@@ -305,9 +311,9 @@ if (-not [String]::IsNullOrEmpty($exitCode) -and -not [String]::IsNullOrWhiteSpa
                 Stop-Transcript
                 Exit 0
             } elseif (-not [string]::IsNullOrEmpty($ParentGroupName) -and -not [string]::IsNullOrEmpty($GroupName)) {
-                Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName" 
-                Set-AxServerGroup -GroupName $GroupName -ParentGroup $ParentGroupName
-                Write-Output "Installation Script has finished successfully. Exit Code 0" 
+                Write-Output "Moving Device to Group: $GroupName under Parent Group: $ParentGroupName"
+                Set-AxServerGroup -GroupName $GroupName -parentGroupName $ParentGroupName
+                Write-Output "Installation Script has finished successfully. Exit Code 0"
                 Stop-Transcript
                 Exit 0
             } elseif (-not [string]::IsNullOrEmpty($GroupName) -and [string]::IsNullOrEmpty($ParentGroupName)) {
