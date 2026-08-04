@@ -28,37 +28,32 @@
             EXAMPLE: -GroupPath "My Parent Group/Nested Group 1/Nested Group 2/Nested Group 3"
 
     .PARAMETER GroupName
-        (Legacy) Specifies the Automox Server Group to move the device to upon
-        joining your Organization. Note that if this isn't a top-level
-        Group, then you will also need to specify the ParentGroupName
-        as well. For nested groups deeper than one level, use GroupPath instead:
+        (Legacy) Specifies the Automox Server Group to move the device to upon joining your Organization.
+        Note that if this isn't a top-level Group, then you will also need to specify the ParentGroupName
+        as well. Do NOT include "Default Group" at the beginning.
 
             EXAMPLE: -GroupName "My Group Name"
 
-    NOTE: By default this script will only support 1 parent group and 1 child group.
+        Note: For nested groups deeper than one level, use $GroupPath instead.
 
     .PARAMETER ParentGroupName
-    Specifies the Parent Group of the Server Group specified
-    previously.
+        Specifies the Parent Group of the Server Group specified previously.
 
             EXAMPLE: -ParentGroupName "My Parent Group Name"
 
     .PARAMETER VerboseLogging
-        Enables detailed logging output for each step of the installation and
-        group move process. Outputs success/failure status for both agent
-        installation and group assignment.
+        Enables detailed logging output for each step of the installation and group move process.
+        Outputs success/failure status for both agent installation and group assignment.
 
             EXAMPLE: -VerboseLogging
 
     .PARAMETER RollbackOnFailure
-        If specified and the group move fails after successful agent installation,
-        the script will uninstall the Automox agent and log the rollback action.
+        If specified and the group move fails after successful agent installation, the script will uninstall the Automox agent and log the rollback action.
 
             EXAMPLE: -RollbackOnFailure
 
     .PARAMETER CleanupInstaller
-        If specified, the downloaded MSI installer will be removed from the temp
-        directory after installation completes (regardless of success or failure).
+        If specified, the downloaded MSI installer will be removed from the temp directory after installation completes (regardless of success or failure).
 
             EXAMPLE: -CleanupInstaller
 
@@ -81,12 +76,12 @@
         With installer cleanup enabled
             Install-AxAgentMsi.ps1 -AccessKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -GroupPath "Production/Servers" -CleanupInstaller
 
-        Legacy: Using GroupName and ParentGroupName (still supported)
+        Legacy: Using Legacy GroupName and ParentGroupName
             Install-AxAgentMsi.ps1 -AccessKey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx -GroupName "My Group Name" -ParentGroupName "My Parent Group Name"
 
     .NOTES
-        If you prefer not to specify parameters to this script file, you may enter
-        the values manually in the param section in the Setup region below.
+        If you prefer not to specify parameters to this script file, you may hardcode the values manually in the param section on lines 137-160.
+        Any mandatory parameters should be set to $false for the script to run without prompting for input.
 
     .HISTORY
         Date: 8/4/2026
@@ -818,7 +813,7 @@ $agentInstalled = checkForAxAgent
 if ( $agentInstalled ) {
     Write-Output "Automox Agent is already installed."
     Write-InstallationSummary -AgentSuccess $true -GroupMoveAttempted $false -GroupMoveSuccess $false
-    Write-Output "Device is not applicable for this script run. `nNow exiting..."
+    Write-Output "Automox Agent is already installed. Device is not applicable for this script run. `nNow exiting..."
     Stop-Transcript
     exit 0
 }
