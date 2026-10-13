@@ -1,0 +1,55 @@
+---
+# Ansible playbook to install Automox Agent on Linux-based system
+# Execute with following command (provide your organization key):
+# ansible-playbook get-automox.yml --extra-vars "organization=your-organization-key-here"
+
+- hosts: all
+  become: true
+  become_method: sudo
+
+  remote_user: root
+  vars:
+    automox_url: https://console.automox.com/downloadInstaller?accesskey={{ organization }}
+    automox_temp_dir: /tmp/automox_install
+    automox_temp_dir_mode: 0700
+
+    automox_temp_install_file: install.sh
+    automox_install_script_owner: root
+    automox_install_script_group: root
+    automox_install_script_mode: 0700
+
+  tasks:
+    - name: Ensure temp directory exists
+      file:
+        path:  "{{ automox_temp_dir }}"
+        state:  directory
+        owner:  "{{ automox_install_script_owner }}"
+        group:  "{{ automox_install_script_group }}"
+        mode:   "{{ automox_temp_dir_mode }}"
+
+    - name: Download Automox Agent from automox_url
+      get_url:
+        url: "{{ automox_url }}"
+        dest: "{{ automox_temp_dir }}/{{ automox_temp_install_file }}"
+        owner:  "{{ automox_install_script_owner }}"
+        group:  "{{ automox_install_script_group }}"
+        mode: "{{ automox_install_script_mode }}"
+
+    - name: Execute Automox install script
+      command: "./{{ automox_temp_install_file }}"
+      args:
+        chdir: "{{ automox_temp_dir }}"
+      notify:
+        - restart Automox
+
+    - name: Ensure amagent is enabled and started
+      service:
+        name: amagent
+        state: running
+        enabled: yes
+
+  handlers:
+    - name: restart Automox
+      service:
+        name:  amagent
+        state: restarted
