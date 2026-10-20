@@ -165,7 +165,7 @@ is_excluded() {
 # CHECK FOR REQUIRED PARAMETERS
 
 if [ -z "$apiKey" ]; then
-    errMessage "ERROR: An Automox Shared Secret named 'apiKey' is required for this script. Please review the script's description for instructions on implementation. Now exiting."
+    errMessage "ERROR: An Automox API Key is required for this script. Please review the script's description for instructions on implementation. Now exiting."
     exit 87
 fi
 
