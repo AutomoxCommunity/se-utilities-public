@@ -8,7 +8,7 @@
 #   The amagent will need to be re-installed on any devices that are removed as a byproduct of this script run.
 #   Please read through the description and implementation instructions carefully so you understand the impact this may have in your environment.
 #
-#   It is recommended to run this script locally and not in an Automox Worklet.
+#   THIS SCRIPT SHOULD BE RAN LOCALLY ON A DEVICE, AND NOT AS AN AUTOMOX WORKLET.
 #
 # DESCRIPTION
 #   This script queries an Automox organization to find devices that have been disconnected from Automox for longer than a defined number of days.
