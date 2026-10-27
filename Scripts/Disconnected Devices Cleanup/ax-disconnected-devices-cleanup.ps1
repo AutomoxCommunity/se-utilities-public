@@ -8,12 +8,12 @@
 	The amagent will need to be re-installed on any devices that are removed as a byproduct of this script run.
 	Please read through the description and implementation instructions carefully so you understand the impact this may have in your environment.
 
-    It is recommended to run this script locally and not in an Automox Worklet.
+    THIS SCRIPT SHOULD BE RAN LOCALLY ON A DEVICE, AND NOT AS AN AUTOMOX WORKLET.
 
 .DESCRIPTION
 	This script queries an Automox organization to find devices that have been disconnected from Automox for longer than a defined number of days.	
 	If the device has exceeded this threshold, it is permanently removed from the Automox console.
-	This threshold can be changed by adjusting "ageLimit" parameter in the "REQUIRED USER PARAMETERS" section of the worklet.
+	This threshold can be changed by adjusting "ageLimit" parameter in the "REQUIRED USER PARAMETERS" section. 
 	Because these removals are irreversible, a "dry run" mode is available to review which devices would be deleted before any actual deletion occurs.
 	This is the default run-mode of the script.
 	An optional "excludedDevice" array can also be configured to exclude specific host names from the device deletion process.
